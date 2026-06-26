@@ -52,8 +52,12 @@ type t = {
       always been a bad idea.  We should change this in future to allow
       the user to select where they want to get drivers from. XXX *)
 
-  mutable block_driver_priority : string list
+  mutable block_driver_priority : string list;
   (** List of block drivers *)
+
+  g2_lazy : Guestfs.guestfs Lazy.t;
+  (** Lazy handle for mounting virtio-win ISO. Only applicable when
+      virtio_win is an ISO, not a directory. *)
 }
 
 type block_type = Virtio_blk | Virtio_SCSI | IDE
@@ -71,6 +75,18 @@ type virtio_win_installed = {
   virtio_1_0 : bool;
 }
 
+let make_g2_lazy virtio_win =
+  lazy (
+    try
+      let g2 = open_guestfs ~identifier:"virtio_win" () in
+      g2#add_drive_opts virtio_win ~readonly:true;
+      g2#launch ();
+      g2#mount_ro "/dev/sda" "/";
+      g2
+    with Guestfs.Error msg ->
+      error (f_"%s: cannot open virtio-win ISO file: %s") virtio_win msg
+  )
+
 let rec from_environment g root datadir =
   let t = get_inspection g root in
 
@@ -83,11 +99,11 @@ let rec from_environment g root datadir =
         (if Sys.file_exists iso then iso
          else datadir // "virtio-win"), false in
 
-  { t with virtio_win; was_set }
+  { t with virtio_win; was_set; g2_lazy = make_g2_lazy virtio_win }
 
 and from_path g root path =
   let t = get_inspection g root in
-  { t with virtio_win = path; was_set = true }
+  { t with virtio_win = path; was_set = true; g2_lazy = make_g2_lazy path }
 
 and get_inspection g root =
   (* Fail hard if inspection hasn't been done or it's not a Windows
@@ -109,7 +125,8 @@ and get_inspection g root =
     i_arch; i_major_version; i_minor_version; i_osinfo;
     i_product_variant; i_windows_current_control_set; i_windows_systemroot;
     virtio_win = ""; was_set = false;
-    block_driver_priority = ["virtio_blk"; "vrtioblk"; "viostor"] }
+    block_driver_priority = ["virtio_blk"; "vrtioblk"; "viostor"];
+    g2_lazy = lazy (assert false) }
 
 let get_block_driver_priority t   = t.block_driver_priority
 let set_block_driver_priority t v = t.block_driver_priority <- v
@@ -401,18 +418,7 @@ and copy_from_virtio_win ({ g } as t) srcdir destdir filter missing =
     debug "windows: copy_from_virtio_win: guest tools source ISO %s"
       t.virtio_win;
 
-    let g2 =
-      try
-        let g2 = open_guestfs ~identifier:"virtio_win" () in
-        g2#add_drive_opts t.virtio_win ~readonly:true;
-        g2#launch ();
-        g2
-      with Guestfs.Error msg ->
-        error (f_"%s: cannot open virtio-win ISO file: %s") t.virtio_win msg in
-    (* Note we are mounting this as root on the *second*
-     * handle, not the main handle containing the guest.
-     *)
-    g2#mount_ro "/dev/sda" "/";
+    let g2 = Lazy.force t.g2_lazy in
     let srcdir = "/" ^ srcdir in
     if not (g2#is_dir srcdir) then missing ()
     else (
@@ -431,7 +437,6 @@ and copy_from_virtio_win ({ g } as t) srcdir destdir filter missing =
           )
       ) paths;
     );
-    g2#close()
   );
   !ret
 
