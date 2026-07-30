@@ -61,13 +61,20 @@ let install_command packages package_management =
       apt-get $apt_opts update
       apt-get $apt_opts install %s
     " quoted_args
-  | "dnf" ->    sprintf "dnf -y install %s" quoted_args
-  | "pisi" ->   sprintf "pisi it %s" quoted_args
-  | "pacman" -> sprintf "pacman -S --noconfirm %s" quoted_args
-  | "urpmi" ->  sprintf "urpmi %s" quoted_args
-  | "xbps" ->   sprintf "xbps-install -Sy %s" quoted_args
-  | "yum" ->    sprintf "yum -y install %s" quoted_args
-  | "zypper" -> sprintf "zypper -n in -l %s" quoted_args
+  | "dnf" ->
+     sprintf "dnf -y install %s" quoted_args
+  | "pisi" ->
+     sprintf "pisi it %s" quoted_args
+  | "pacman" ->
+     sprintf "pacman -S --noconfirm %s" quoted_args
+  | "urpmi" ->
+     sprintf "urpmi %s" quoted_args
+  | "xbps" ->
+     sprintf "xbps-install -Sy %s" quoted_args
+  | "yum" ->
+     sprintf "yum -y install %s" quoted_args
+  | "zypper" ->
+     sprintf "zypper -n in -l %s" quoted_args
 
   | "unknown" ->
     error_unknown_package_manager "--install"
@@ -92,11 +99,16 @@ let update_command package_management =
   | "dnf" ->
      sprintf "dnf%s -y --best upgrade"
              (if verbose () then " --verbose" else "")
-  | "pisi" ->   "pisi upgrade"
-  | "pacman" -> "pacman -Su"
-  | "urpmi" ->  "urpmi --auto-select"
-  | "xbps" ->   "xbps-install -Suy"
-  | "yum" ->    "yum -y update"
+  | "pisi" ->
+     "pisi upgrade"
+  | "pacman" ->
+     "pacman -Su"
+  | "urpmi" ->
+     "urpmi --auto-select"
+  | "xbps" ->
+     "xbps-install -Suy"
+  | "yum" ->
+     "yum -y update"
   | "zypper" -> "zypper -n dup -l"
 
   | "unknown" ->
@@ -118,12 +130,18 @@ let uninstall_command packages package_management =
   | "dnf" ->
      sprintf "dnf -y --disableplugin=subscription-manager remove %s"
              quoted_args
-  | "pisi" ->   sprintf "pisi rm %s" quoted_args
-  | "pacman" -> sprintf "pacman -R %s" quoted_args
-  | "urpmi" ->  sprintf "urpme %s" quoted_args
-  | "xbps" ->   sprintf "xbps-remove -Sy %s" quoted_args
-  | "yum" ->    sprintf "yum -y remove %s" quoted_args
-  | "zypper" -> sprintf "zypper -n rm %s" quoted_args
+  | "pisi" ->
+     sprintf "pisi rm %s" quoted_args
+  | "pacman" ->
+     sprintf "pacman -R %s" quoted_args
+  | "urpmi" ->
+     sprintf "urpme %s" quoted_args
+  | "xbps" ->
+     sprintf "xbps-remove -Sy %s" quoted_args
+  | "yum" ->
+     sprintf "yum -y remove %s" quoted_args
+  | "zypper" ->
+     sprintf "zypper -n rm %s" quoted_args
 
   | "unknown" ->
     error_unknown_package_manager "--uninstall"
