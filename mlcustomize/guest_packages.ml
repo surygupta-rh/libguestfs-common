@@ -122,8 +122,14 @@ let update_command package_management =
   | pm ->
     error_unimplemented_package_manager "--update" pm
 
-let uninstall_command packages package_management =
+let uninstall_command ?clean_requirements_on_remove
+      packages package_management =
   let quoted_args = String.concat " " (List.map quote packages) in
+  let dnf_yum_clean_requirements_on_remove =
+    match clean_requirements_on_remove with
+    | None -> ""
+    | Some true -> "--setopt=clean_requirements_on_remove=True"
+    | Some false -> "--setopt=clean_requirements_on_remove=False" in
   match package_management with
   | "apk" -> sprintf "apk del %s" quoted_args
   | "apt" ->
@@ -134,8 +140,10 @@ let uninstall_command packages package_management =
       apt-get $apt_opts remove %s
     " quoted_args
   | "dnf" ->
-     sprintf "dnf -y --setopt=skip_if_unavailable=True --disableplugin=subscription-manager remove %s"
-             quoted_args
+     sprintf "dnf -y --setopt=skip_if_unavailable=True %s \
+              --disableplugin=subscription-manager \
+              remove %s"
+       dnf_yum_clean_requirements_on_remove quoted_args
   | "pisi" ->
      sprintf "pisi rm %s" quoted_args
   | "pacman" ->
@@ -145,7 +153,9 @@ let uninstall_command packages package_management =
   | "xbps" ->
      sprintf "xbps-remove -Sy %s" quoted_args
   | "yum" ->
-     sprintf "yum -y --setopt=skip_if_unavailable=True remove %s" quoted_args
+     sprintf "yum -y --setopt=skip_if_unavailable=True %s \
+              remove %s"
+       dnf_yum_clean_requirements_on_remove quoted_args
   | "zypper" ->
      sprintf "zypper -n rm %s" quoted_args
 
