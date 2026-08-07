@@ -43,15 +43,6 @@ type t = {
   virtio_win : string;
   (** Path to the virtio-win ISO or directory. *)
 
-  was_set : bool;
-  (** If the virtio_win path was explicitly set, for example by
-      the user setting an environment variable.
-
-      This is used to "show intention" to use virtio-win instead
-      of libosinfo.  Although this behaviour is documented, IMHO it has
-      always been a bad idea.  We should change this in future to allow
-      the user to select where they want to get drivers from. XXX *)
-
   mutable block_driver_priority : string list;
   (** List of block drivers *)
 
@@ -90,20 +81,20 @@ let make_g2_lazy virtio_win =
 let rec from_environment g root datadir =
   let t = get_inspection g root in
 
-  let virtio_win, was_set =
-    try Sys.getenv "VIRTIO_WIN", true
+  let virtio_win =
+    try Sys.getenv "VIRTIO_WIN"
     with Not_found ->
-      try Sys.getenv "VIRTIO_WIN_DIR" (* old name for VIRTIO_WIN *), true
+      try Sys.getenv "VIRTIO_WIN_DIR" (* old name for VIRTIO_WIN *)
       with Not_found ->
         let iso = datadir // "virtio-win" // "virtio-win.iso" in
         (if Sys.file_exists iso then iso
-         else datadir // "virtio-win"), false in
+         else datadir // "virtio-win") in
 
-  { t with virtio_win; was_set; g2_lazy = make_g2_lazy virtio_win }
+  { t with virtio_win; g2_lazy = make_g2_lazy virtio_win }
 
 and from_path g root path =
   let t = get_inspection g root in
-  { t with virtio_win = path; was_set = true; g2_lazy = make_g2_lazy path }
+  { t with virtio_win = path; g2_lazy = make_g2_lazy path }
 
 and get_inspection g root =
   (* Fail hard if inspection hasn't been done or it's not a Windows
@@ -124,7 +115,7 @@ and get_inspection g root =
   { g; root;
     i_arch; i_major_version; i_minor_version; i_osinfo;
     i_product_variant; i_windows_current_control_set; i_windows_systemroot;
-    virtio_win = ""; was_set = false;
+    virtio_win = "";
     block_driver_priority = ["virtio_blk"; "vrtioblk"; "viostor"];
     g2_lazy = lazy (assert false) }
 
@@ -561,11 +552,31 @@ and configure_qemu_ga t tempdir_win files =
   add "# Run qemu-ga installers";
   List.iter (
     fun msi ->
-      add (sprintf "Write-Host \"Writing log to %s\\%s.log\""
-             tempdir_win msi);
-      (* [`] is an escape char for quotes *)
-      add (sprintf "Start-Process -Wait -FilePath \"%s\\%s\" -ArgumentList \"/norestart\",\"/qn\",\"/l+*vx\",\"`\"%s\\%s.log`\"\""
-             tempdir_win msi tempdir_win msi)
+      add (sprintf {|$msi = "%s\%s"|} tempdir_win msi);
+      add {|$logfile = "$msi.log"|};
+      add {|$maxAttempts = 10|};
+      add {|$retryDelay = 60|};
+      add {|for ($attempt = 1; $attempt -le $maxAttempts; $attempt++) {|};
+      add {|  Write-Host "Attempt $attempt of $maxAttempts"|};
+      add {|  Write-Host "Writing log to $logfile"|};
+      (* [`] is an escape char for double quotes.
+       * [-PassThru] ensures that [Start-Process] returns the cmd object
+       * so we can get the exit code.
+       *)
+      add {|  $proc = Start-Process -Wait -PassThru -FilePath "$msi" -ArgumentList "/norestart","/qn","/l+*vx","`"$logfile`""|};
+      add {|  $exitCode = $proc.ExitCode|};
+      add {|  Write-Host "Exit code: $exitCode"|};
+      add {|  if ($exitCode -eq 0) {|};
+      add {|    Write-Host "QEMU Guest Agent installed successfully"|};
+      add {|    break|};
+      add {|  }|};
+      add {|  if ($attempt -lt $maxAttempts) {|};
+      add {|    Write-Host "Install failed, retrying in $retryDelay seconds..."|};
+      add {|    Start-Sleep -Seconds $retryDelay|};
+      add {|  } else {|};
+      add {|    Write-Host "Install failed after $maxAttempts attempts"|};
+      add {|  }|};
+      add {|}|}
   ) files;
 
   Firstboot.add_firstboot_powershell t.g t.root "install-qemu-ga" !script

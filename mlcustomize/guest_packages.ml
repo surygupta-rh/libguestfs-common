@@ -44,7 +44,13 @@ let error_unimplemented_package_manager flag pm =
                     flag pm in
   raise (Unimplemented_package_manager msg)
 
-(* http://distrowatch.com/dwres.php?resource=package-management *)
+(* http://distrowatch.com/dwres.php?resource=package-management
+ *
+ * yum/dnf --setopt=skip_if_unavailable=True makes package installation
+ * a bit more reliable if an unrelated repo, or the network, are not
+ * available.  The command will still fail if the package itself cannot
+ * be downloaded.
+ *)
 let install_command packages package_management =
   let quoted_args = String.concat " " (List.map quote packages) in
   match package_management with
@@ -61,13 +67,20 @@ let install_command packages package_management =
       apt-get $apt_opts update
       apt-get $apt_opts install %s
     " quoted_args
-  | "dnf" ->    sprintf "dnf -y install %s" quoted_args
-  | "pisi" ->   sprintf "pisi it %s" quoted_args
-  | "pacman" -> sprintf "pacman -S --noconfirm %s" quoted_args
-  | "urpmi" ->  sprintf "urpmi %s" quoted_args
-  | "xbps" ->   sprintf "xbps-install -Sy %s" quoted_args
-  | "yum" ->    sprintf "yum -y install %s" quoted_args
-  | "zypper" -> sprintf "zypper -n in -l %s" quoted_args
+  | "dnf" ->
+     sprintf "dnf --setopt=skip_if_unavailable=True -y install %s" quoted_args
+  | "pisi" ->
+     sprintf "pisi it %s" quoted_args
+  | "pacman" ->
+     sprintf "pacman -S --noconfirm %s" quoted_args
+  | "urpmi" ->
+     sprintf "urpmi %s" quoted_args
+  | "xbps" ->
+     sprintf "xbps-install -Sy %s" quoted_args
+  | "yum" ->
+     sprintf "yum --setopt=skip_if_unavailable=True -y install %s" quoted_args
+  | "zypper" ->
+     sprintf "zypper -n in -l %s" quoted_args
 
   | "unknown" ->
     error_unknown_package_manager "--install"
@@ -90,13 +103,18 @@ let update_command package_management =
       apt-get $apt_opts upgrade
     "
   | "dnf" ->
-     sprintf "dnf%s -y --best upgrade"
+     sprintf "dnf%s --setopt=skip_if_unavailable=True -y --best upgrade"
              (if verbose () then " --verbose" else "")
-  | "pisi" ->   "pisi upgrade"
-  | "pacman" -> "pacman -Su"
-  | "urpmi" ->  "urpmi --auto-select"
-  | "xbps" ->   "xbps-install -Suy"
-  | "yum" ->    "yum -y update"
+  | "pisi" ->
+     "pisi upgrade"
+  | "pacman" ->
+     "pacman -Su"
+  | "urpmi" ->
+     "urpmi --auto-select"
+  | "xbps" ->
+     "xbps-install -Suy"
+  | "yum" ->
+     "yum -y --setopt=skip_if_unavailable=True update"
   | "zypper" -> "zypper -n dup -l"
 
   | "unknown" ->
@@ -115,13 +133,21 @@ let uninstall_command packages package_management =
       apt_opts='-q -y -o Dpkg::Options::=--force-confnew'
       apt-get $apt_opts remove %s
     " quoted_args
-  | "dnf" ->    sprintf "dnf -y remove %s" quoted_args
-  | "pisi" ->   sprintf "pisi rm %s" quoted_args
-  | "pacman" -> sprintf "pacman -R %s" quoted_args
-  | "urpmi" ->  sprintf "urpme %s" quoted_args
-  | "xbps" ->   sprintf "xbps-remove -Sy %s" quoted_args
-  | "yum" ->    sprintf "yum -y remove %s" quoted_args
-  | "zypper" -> sprintf "zypper -n rm %s" quoted_args
+  | "dnf" ->
+     sprintf "dnf -y --setopt=skip_if_unavailable=True --disableplugin=subscription-manager remove %s"
+             quoted_args
+  | "pisi" ->
+     sprintf "pisi rm %s" quoted_args
+  | "pacman" ->
+     sprintf "pacman -R %s" quoted_args
+  | "urpmi" ->
+     sprintf "urpme %s" quoted_args
+  | "xbps" ->
+     sprintf "xbps-remove -Sy %s" quoted_args
+  | "yum" ->
+     sprintf "yum -y --setopt=skip_if_unavailable=True remove %s" quoted_args
+  | "zypper" ->
+     sprintf "zypper -n rm %s" quoted_args
 
   | "unknown" ->
     error_unknown_package_manager "--uninstall"
