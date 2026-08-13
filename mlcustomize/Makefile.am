@@ -106,6 +106,7 @@ libmlcustomize_a_CPPFLAGS = \
 	-I$(top_srcdir)/common/mlxml
 libmlcustomize_a_CFLAGS = \
 	$(WARN_CFLAGS) $(WERROR_CFLAGS) \
+	$(LIBGUESTFS_CFLAGS) \
 	-fPIC
 
 BOBJECTS = $(SOURCES_ML:.ml=.cmo)
