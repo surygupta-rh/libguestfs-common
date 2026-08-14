@@ -107,10 +107,10 @@ and flags = {
       (* --no-selinux-relabel *)
   selinux_relabel_ignored : bool;
       (* --selinux-relabel *)
-  selinux_relabel_excludes : string list;
-      (* --selinux-relabel-exclude *)
   selinux_relabel_at_boot : bool;
       (* --selinux-relabel-at-boot *)
+  selinux_relabel_excludes : string list;
+      (* --selinux-relabel-exclude *)
 }
 
 type argspec = Getopt.keys * Getopt.spec * Getopt.doc

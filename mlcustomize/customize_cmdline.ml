@@ -115,10 +115,10 @@ and flags = {
       (* --no-selinux-relabel *)
   selinux_relabel_ignored : bool;
       (* --selinux-relabel *)
-  selinux_relabel_excludes : string list;
-      (* --selinux-relabel-exclude *)
   selinux_relabel_at_boot : bool;
       (* --selinux-relabel-at-boot *)
+  selinux_relabel_excludes : string list;
+      (* --selinux-relabel-exclude *)
 }
 
 type argspec = Getopt.keys * Getopt.spec * Getopt.doc
@@ -129,8 +129,8 @@ let rec argspec ?(v2v = false) () =
   let password_crypto = ref None in
   let no_selinux_relabel = ref false in
   let selinux_relabel_ignored = ref false in
-  let selinux_relabel_excludes = ref [] in
   let selinux_relabel_at_boot = ref false in
+  let selinux_relabel_excludes = ref [] in
 
   let rec get_ops () = {
     ops = List.rev !ops;
@@ -141,8 +141,8 @@ let rec argspec ?(v2v = false) () =
     password_crypto = !password_crypto;
     no_selinux_relabel = !no_selinux_relabel;
     selinux_relabel_ignored = !selinux_relabel_ignored;
-    selinux_relabel_excludes = !selinux_relabel_excludes;
     selinux_relabel_at_boot = !selinux_relabel_at_boot;
+    selinux_relabel_excludes = !selinux_relabel_excludes;
   }
   in
 
@@ -497,6 +497,12 @@ let rec argspec ?(v2v = false) () =
     ),
     None, "This is a compatibility option that does nothing.", false;
     (
+      [ L"selinux-relabel-at-boot" ],
+      Getopt.Set selinux_relabel_at_boot,
+      s_"Defer SELinux relabelling until boot"
+    ),
+    None, "This advanced option lets you defer\nSELinux relabelling until the first time the guest boots\nafter conversion.\n\nThe advantage of doing this is that conversion is quicker\nand uses less memory.\n\nThe disadvantages are:\n\n=over 4\n\n=item *\n\nThe guest will take I<much> longer to boot up and become ready\nthe first time it boots.\n\n=item *\n\nThe guest will reboot at least once.\n\n=item *\n\nSELinux relabelling problems cannot be detected during conversion.\n\n=back\n\nIf in doubt, do not use this option.", false;
+    (
       [ L"selinux-relabel-exclude" ],
       Getopt.String (
         s_"DIR",
@@ -505,12 +511,6 @@ let rec argspec ?(v2v = false) () =
       s_"Exclude directories from SELinux relabelling"
     ),
     Some "DIR", "Exclude directories from being relabelled.\n\nThis advanced option lets you list directories in the guest which\nshould not be relabelled, even when SELinux relabelling is\nenabled.  Use this carefully, as any changes that are made\ninside these directories during customization will have incorrect\nSELinux labels, leading to potential failures later, so you must\nbe sure that the directories do not need relabelling.\n\nIf in doubt, do not use this option.\n\nYou can pass the option multiple times, eg.\nI<--selinux-relabel-exclude=/foo> I<--selinux-relabel-exclude=/bar>", false;
-    (
-      [ L"selinux-relabel-at-boot" ],
-      Getopt.Set selinux_relabel_at_boot,
-      s_"Defer SELinux relabelling until boot"
-    ),
-    None, "This advanced option lets you defer\nSELinux relabelling until the first time the guest boots\nafter conversion.\n\nThe advantage of doing this is that conversion is quicker\nand uses less memory.\n\nThe disadvantages are:\n\n=over 4\n\n=item *\n\nThe guest will take I<much> longer to boot up and become ready\nthe first time it boots.\n\n=item *\n\nThe guest will reboot at least once.\n\n=item *\n\nSELinux relabelling problems cannot be detected during conversion.\n\n=back\n\nIf in doubt, do not use this option.", false;
   ]
   and customize_read_from_file filename =
     let forbidden_commands = [
