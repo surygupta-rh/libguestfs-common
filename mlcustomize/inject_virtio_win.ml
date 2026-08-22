@@ -431,6 +431,8 @@ and copy_from_virtio_win ({ g } as t) srcdir destdir filter missing =
                   source target;
 
             g#write target (read_whole_file source);
+            debug "windows: injected '%s' sha256=%s"
+              target_name (g#checksum "sha256" target);
             List.push_front target_name ret
           )
       ) paths
@@ -455,6 +457,8 @@ and copy_from_virtio_win ({ g } as t) srcdir destdir filter missing =
               iso_path path target;
 
             g#write target (g2#read_file source);
+            debug "windows: injected '%s' sha256=%s"
+              target_name (g#checksum "sha256" target);
             List.push_front target_name ret
           )
       ) paths;
