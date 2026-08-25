@@ -118,6 +118,7 @@ struct key_store_key {
     key_string,             /* key specified as string */
     key_file,               /* key stored in a file */
     key_clevis,             /* key reconstructed with Clevis+Tang */
+    key_error,              /* no key, error out if matches */
   } type;
   union {
     struct {

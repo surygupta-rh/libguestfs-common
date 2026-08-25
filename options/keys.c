@@ -224,6 +224,10 @@ get_keys (struct key_store *ks, const char *device, const char *uuid,
         match->passphrase = NULL;
         ++match;
         break;
+      case key_error:
+        error (EXIT_FAILURE, 0, _("encrypted device %s "
+                                  "matched --key ...:error"),
+               device);
       }
     }
   }
@@ -466,6 +470,7 @@ free_key_store (struct key_store *ks)
       free (key->file.name);
       break;
     case key_clevis:
+    case key_error:
       /* nothing */
       break;
     }

@@ -35,6 +35,7 @@ and key_store_key =
   | KeyString of string
   | KeyFileName of string
   | KeyClevis
+  | KeyError
 
 external c_inspect_decrypt : Guestfs.t -> int64 -> (string * key_store_key) list -> unit = "guestfs_int_mllib_inspect_decrypt"
 external c_set_echo_keys : unit -> unit = "guestfs_int_mllib_set_echo_keys" [@@noalloc]
@@ -416,6 +417,10 @@ let create_standard_options argspec ?anon_fun ?(key_opts = false)
         error (f_"selector '%s': too many fields") arg
       | [ device; "clevis" ] ->
          List.push_back ks.keys (device, KeyClevis)
+      |  _ :: "error" :: _ :: _ ->
+        error (f_"selector '%s': too many fields") arg
+      | [ device; "error" ] ->
+         List.push_back ks.keys (device, KeyError)
       | _ ->
          error (f_"selector '%s': invalid TYPE") arg
     in

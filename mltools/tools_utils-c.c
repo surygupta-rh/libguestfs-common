@@ -84,6 +84,9 @@ guestfs_int_mllib_inspect_decrypt (value gv, value gpv, value keysv)
       case 0:  /* KeyClevis */
         key.type = key_clevis;
         break;
+      case 1:  /* KeyError */
+        key.type = key_error;
+        break;
       default:
         abort ();
       }
